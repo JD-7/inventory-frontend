@@ -1079,10 +1079,17 @@
           // THIS IS THE CRITICAL LINE!
           const res = await fetch('https://inventory-backend-gmv2.onrender.com/products', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Origin': 'https://inventoryproxi.netlify.app'
+            },
+            mode: 'cors',
+            credentials: 'omit',
             body: JSON.stringify({ FD_NAME: name })
           });
           console.log('Response status:', res.status);
+          console.log('Response headers:', Object.fromEntries(res.headers.entries()));
 
           if (res.status === 201) {
             console.log('Product added successfully');
@@ -1101,6 +1108,11 @@
           }
         } catch (err) {
           console.error('Network error:', err);
+          console.error('Error details:', {
+            message: err.message,
+            name: err.name,
+            stack: err.stack
+          });
           alert('Network error: ' + err.message);
         }
       });
