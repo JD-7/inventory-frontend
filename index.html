@@ -418,14 +418,23 @@
             id="newProductName"
             class="form-input"
             placeholder="New product name"
-            style="max-width: 300px; margin-right: 10px;"
+            style="max-width: 200px; margin-right: 10px;"
           />
           <button
             type="button"
             id="addProductBtn"
             class="btn btn-primary"
+            style="margin-right: 20px;"
           >
             + Add New Product
+          </button>
+          <select id="deleteProductSelect" class="form-input" style="max-width: 200px; margin-right: 10px;"></select>
+          <button
+            type="button"
+            id="deleteProductBtn"
+            class="btn btn-danger"
+          >
+            Delete Product
           </button>
         </div>
         <!-- ─────────────────────────────────────────────────────────────
@@ -950,8 +959,10 @@
         const products = await res.json();
         const inwardSelect = document.getElementById("inwardProductSelect");
         const dispatchSelect = document.getElementById("dispatchProductSelect");
+        const deleteSelect = document.getElementById("deleteProductSelect");
         inwardSelect.innerHTML = '<option value="">Select Product</option>';
         dispatchSelect.innerHTML = '<option value="">Select Product</option>';
+        deleteSelect.innerHTML = '<option value="">Select Product to Delete</option>';
         products.forEach((name) => {
           const opt1 = document.createElement("option");
           opt1.value = name;
@@ -961,6 +972,10 @@
           opt2.value = name;
           opt2.textContent = name;
           dispatchSelect.appendChild(opt2);
+          const opt3 = document.createElement("option");
+          opt3.value = name;
+          opt3.textContent = name;
+          deleteSelect.appendChild(opt3);
         });
       } catch (err) {
         console.error("Error fetching products:", err);
@@ -1060,7 +1075,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       console.log('DOM Content Loaded - Setting up Add Product button');
       const addButton = document.getElementById('addProductBtn');
+      const deleteButton = document.getElementById('deleteProductBtn');
       console.log('Add Product button found:', addButton);
+      console.log('Delete Product button found:', deleteButton);
       
       addButton.addEventListener('click', async function () {
         console.log('Add Product button clicked');
@@ -1070,13 +1087,12 @@
         
         if (!name) {
           console.log('No product name entered');
-          alert('Please enter a product name.');
+          showNotification('Please enter a product name', 'error');
           return;
         }
 
         try {
           console.log('Sending POST request to add product:', name);
-          // THIS IS THE CRITICAL LINE!
           const res = await fetch('https://inventory-backend-gmv2.onrender.com/products', {
             method: 'POST',
             headers: { 
@@ -1093,18 +1109,18 @@
 
           if (res.status === 201) {
             console.log('Product added successfully');
-            alert('Product added!');
+            showNotification('Product added!', 'success');
             inputEl.value = '';
             await populateProductDropdowns();
             await fetchAndRenderBalance();
             await updateDashboardStats();
           } else if (res.status === 409) {
             console.log('Product already exists');
-            alert('That product already exists!');
+            showNotification('That product already exists!', 'error');
           } else {
             const errData = await res.json().catch(() => ({}));
             console.log('Error response:', errData);
-            alert('Error: ' + (errData.error || res.status));
+            showNotification('Error: ' + (errData.error || res.status), 'error');
           }
         } catch (err) {
           console.error('Network error:', err);
@@ -1113,10 +1129,38 @@
             name: err.name,
             stack: err.stack
           });
-          alert('Network error: ' + err.message);
+          showNotification('Network error: ' + err.message, 'error');
         }
       });
-      console.log('Add Product button event listener attached');
+
+      deleteButton.addEventListener('click', async function() {
+        const delSelect = document.getElementById('deleteProductSelect');
+        const fd_name = delSelect.value;
+
+        if (!fd_name) {
+          showNotification('Please select a product to delete.', 'error');
+          return;
+        }
+        // Optional: Confirm
+        if (!confirm(`Are you sure you want to delete "${fd_name}"? This cannot be undone!`)) return;
+
+        try {
+          const res = await fetch(`${BASE_URL}/products/${encodeURIComponent(fd_name)}`, {
+            method: 'DELETE',
+          });
+          if (res.status === 200) {
+            showNotification('Product deleted!', 'success');
+            await populateProductDropdowns();
+            await fetchAndRenderBalance();
+            await updateDashboardStats();
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            showNotification('Error: ' + (errData.error || res.status), 'error');
+          }
+        } catch (err) {
+          showNotification('Network error: ' + err.message, 'error');
+        }
+      });
     });
   </script>
 </body>
