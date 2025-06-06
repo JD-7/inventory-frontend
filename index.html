@@ -1058,38 +1058,53 @@
     });
 
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('addProductBtn').addEventListener('click', async function () {
+      console.log('DOM Content Loaded - Setting up Add Product button');
+      const addButton = document.getElementById('addProductBtn');
+      console.log('Add Product button found:', addButton);
+      
+      addButton.addEventListener('click', async function () {
+        console.log('Add Product button clicked');
         const inputEl = document.getElementById('newProductName');
         const name = inputEl.value.trim();
+        console.log('Product name entered:', name);
+        
         if (!name) {
+          console.log('No product name entered');
           alert('Please enter a product name.');
           return;
         }
 
         try {
+          console.log('Sending POST request to add product:', name);
           // THIS IS THE CRITICAL LINE!
           const res = await fetch('https://inventory-backend-gmv2.onrender.com/products', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ FD_NAME: name })
           });
+          console.log('Response status:', res.status);
 
           if (res.status === 201) {
+            console.log('Product added successfully');
             alert('Product added!');
             inputEl.value = '';
             await populateProductDropdowns();
             await fetchAndRenderBalance();
             await updateDashboardStats();
           } else if (res.status === 409) {
+            console.log('Product already exists');
             alert('That product already exists!');
           } else {
             const errData = await res.json().catch(() => ({}));
+            console.log('Error response:', errData);
             alert('Error: ' + (errData.error || res.status));
           }
         } catch (err) {
+          console.error('Network error:', err);
           alert('Network error: ' + err.message);
         }
       });
+      console.log('Add Product button event listener attached');
     });
   </script>
 </body>
