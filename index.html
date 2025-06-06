@@ -1043,6 +1043,11 @@
         document
           .getElementById("dispatchForm")
           .addEventListener("submit", submitDispatchForm);
+
+        // 4) Attach "Add New Product" button handler
+        document
+          .getElementById("addProductBtn")
+          .addEventListener("click", addNewProduct);
       } catch (error) {
         console.error("Failed to connect to backend:", error);
         showNotification(
