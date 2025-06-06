@@ -408,6 +408,25 @@
     <div id="balance" class="content-section">
       <div class="bento-card">
         <h3>Current Stock Balances</h3>
+        <!-- ─────────────────────────────────────────────────────────────
+         NEW: Add “Add New Product” form above the table
+         ──────────────────────────────────────────────────────────── -->
+        <div style="display:flex; align-items:center; margin-bottom: 20px;">
+          <input
+            type="text"
+            id="newProductName"
+            class="form-input"
+            placeholder="New product name"
+            style="max-width: 300px; margin-right: 10px;"
+          />
+          <button
+            type="button"
+            id="addProductBtn"
+            class="btn btn-primary"
+          >
+            + Add New Product
+          </button>
+        </div>
         <div class="search-container">
           <input
             type="text"
@@ -747,6 +766,7 @@
       );
       renderBalanceTable(filtered);
     }
+    
 
     /*===================================
       INWARD SECTION
