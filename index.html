@@ -1043,11 +1043,6 @@
         document
           .getElementById("dispatchForm")
           .addEventListener("submit", submitDispatchForm);
-
-        // 4) Attach "Add New Product" button handler
-        document
-          .getElementById("addProductBtn")
-          .addEventListener("click", addNewProduct);
       } catch (error) {
         console.error("Failed to connect to backend:", error);
         showNotification(
@@ -1062,59 +1057,40 @@
       }
     });
 
-    /*===================================
-      NEW PRODUCT: CREATE & REFRESH
-    ===================================*/
-    async function addNewProduct() {
-      // 1) Grab the product name the user typed
-      const inputEl = document.getElementById('newProductName');
-      const name = inputEl.value.trim();
-
-      if (!name) {
-        showNotification('Please enter a product name.', 'error');
-        return;
-      }
-
-      try {
-        // 2) Send POST /products
-        const res = await fetch(`${BASE_URL}/products`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ FD_NAME: name })
-        });
-
-        if (res.status === 409) {
-          // Duplicate name
-          showNotification(`Product "${name}" already exists.`, 'error');
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('addProductBtn').addEventListener('click', async function () {
+        const inputEl = document.getElementById('newProductName');
+        const name = inputEl.value.trim();
+        if (!name) {
+          alert('Please enter a product name.');
           return;
         }
-        if (!res.ok) {
-          // Some other server error (400/500)
-          const errData = await res.json().catch(() => ({}));
-          const msg = errData.error || `Server returned ${res.status}`;
-          throw new Error(msg);
+
+        try {
+          // THIS IS THE CRITICAL LINE!
+          const res = await fetch('https://inventory-backend-gmv2.onrender.com/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ FD_NAME: name })
+          });
+
+          if (res.status === 201) {
+            alert('Product added!');
+            inputEl.value = '';
+            await populateProductDropdowns();
+            await fetchAndRenderBalance();
+            await updateDashboardStats();
+          } else if (res.status === 409) {
+            alert('That product already exists!');
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            alert('Error: ' + (errData.error || res.status));
+          }
+        } catch (err) {
+          alert('Network error: ' + err.message);
         }
-
-        // 3) Success → Clear the input
-        inputEl.value = '';
-
-        // 4) Show success notification
-        showNotification(`"${name}" added successfully!`, 'success');
-
-        // 5) Refresh everything: Products dropdown, Balance table, Dashboard stats
-        await populateProductDropdowns();
-        await fetchAndRenderBalance();
-        await updateDashboardStats();
-
-        // 6) (Optional) You might also want to reload Recent Activities,
-        //     if you consider "adding a product" an activity:
-        // loadRecentActivities();
-
-      } catch (err) {
-        console.error('Error adding new product:', err);
-        showNotification(`Failed to add product: ${err.message}`, 'error');
-      }
-    }
+      });
+    });
   </script>
 </body>
 </html>
