@@ -357,7 +357,7 @@
           <img src="potionlogo.png" alt="Potion1st" style="height:80px;" />
         </div>
         <div>
-          <h1>Inventory Management System</h1>
+          <h1>Stock Management System</h1>
           <p>Track Inward, Dispatch, and Live Balances</p>
         </div>
       </div>
@@ -407,26 +407,40 @@
     <!-- BALANCE SECTION -->
     <div id="balance" class="content-section">
       <div class="bento-card">
-        <h3>Current Stock Balances</h3>
+        <h3 style="margin-bottom: 15px;">Current Stock Balances</h3>
+
         <!-- ─────────────────────────────────────────────────────────────
-         NEW: Add “Add New Product” form above the table
-         ──────────────────────────────────────────────────────────── -->
+             NEW: Add "Add New Product" form above the table
+             ──────────────────────────────────────────────────────────── -->
         <div style="display:flex; align-items:center; margin-bottom: 20px;">
           <input
             type="text"
             id="newProductName"
             class="form-input"
             placeholder="New product name"
-            style="max-width: 300px; margin-right: 10px;"
+            style="max-width: 200px; margin-right: 10px;"
           />
           <button
             type="button"
             id="addProductBtn"
             class="btn btn-primary"
+            style="margin-right: 20px;"
           >
             + Add New Product
           </button>
+          <select id="deleteProductSelect" class="form-input" style="max-width: 200px; margin-right: 10px;"></select>
+          <button
+            type="button"
+            id="deleteProductBtn"
+            class="btn btn-danger"
+          >
+            Delete Product
+          </button>
         </div>
+        <!-- ─────────────────────────────────────────────────────────────
+             END "Add New Product" UI
+             ──────────────────────────────────────────────────────────── -->
+
         <div class="search-container">
           <input
             type="text"
@@ -766,7 +780,6 @@
       );
       renderBalanceTable(filtered);
     }
-    
 
     /*===================================
       INWARD SECTION
@@ -946,8 +959,10 @@
         const products = await res.json();
         const inwardSelect = document.getElementById("inwardProductSelect");
         const dispatchSelect = document.getElementById("dispatchProductSelect");
+        const deleteSelect = document.getElementById("deleteProductSelect");
         inwardSelect.innerHTML = '<option value="">Select Product</option>';
         dispatchSelect.innerHTML = '<option value="">Select Product</option>';
+        deleteSelect.innerHTML = '<option value="">Select Product to Delete</option>';
         products.forEach((name) => {
           const opt1 = document.createElement("option");
           opt1.value = name;
@@ -957,6 +972,10 @@
           opt2.value = name;
           opt2.textContent = name;
           dispatchSelect.appendChild(opt2);
+          const opt3 = document.createElement("option");
+          opt3.value = name;
+          opt3.textContent = name;
+          deleteSelect.appendChild(opt3);
         });
       } catch (err) {
         console.error("Error fetching products:", err);
@@ -1051,6 +1070,97 @@
         document.getElementById("inwardForm").style.pointerEvents = "none";
         document.getElementById("dispatchForm").style.pointerEvents = "none";
       }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM Content Loaded - Setting up Add Product button');
+      const addButton = document.getElementById('addProductBtn');
+      const deleteButton = document.getElementById('deleteProductBtn');
+      console.log('Add Product button found:', addButton);
+      console.log('Delete Product button found:', deleteButton);
+      
+      addButton.addEventListener('click', async function () {
+        console.log('Add Product button clicked');
+        const inputEl = document.getElementById('newProductName');
+        const name = inputEl.value.trim();
+        console.log('Product name entered:', name);
+        
+        if (!name) {
+          console.log('No product name entered');
+          showNotification('Please enter a product name', 'error');
+          return;
+        }
+
+        try {
+          console.log('Sending POST request to add product:', name);
+          const res = await fetch('https://inventory-backend-gmv2.onrender.com/products', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Origin': 'https://inventoryproxi.netlify.app'
+            },
+            mode: 'cors',
+            credentials: 'omit',
+            body: JSON.stringify({ FD_NAME: name })
+          });
+          console.log('Response status:', res.status);
+          console.log('Response headers:', Object.fromEntries(res.headers.entries()));
+
+          if (res.status === 201) {
+            console.log('Product added successfully');
+            showNotification('Product added!', 'success');
+            inputEl.value = '';
+            await populateProductDropdowns();
+            await fetchAndRenderBalance();
+            await updateDashboardStats();
+          } else if (res.status === 409) {
+            console.log('Product already exists');
+            showNotification('That product already exists!', 'error');
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            console.log('Error response:', errData);
+            showNotification('Error: ' + (errData.error || res.status), 'error');
+          }
+        } catch (err) {
+          console.error('Network error:', err);
+          console.error('Error details:', {
+            message: err.message,
+            name: err.name,
+            stack: err.stack
+          });
+          showNotification('Network error: ' + err.message, 'error');
+        }
+      });
+
+      deleteButton.addEventListener('click', async function() {
+        const delSelect = document.getElementById('deleteProductSelect');
+        const fd_name = delSelect.value;
+
+        if (!fd_name) {
+          showNotification('Please select a product to delete.', 'error');
+          return;
+        }
+        // Optional: Confirm
+        if (!confirm(`Are you sure you want to delete "${fd_name}"? This cannot be undone!`)) return;
+
+        try {
+          const res = await fetch(`${BASE_URL}/products/${encodeURIComponent(fd_name)}`, {
+            method: 'DELETE',
+          });
+          if (res.status === 200) {
+            showNotification('Product deleted!', 'success');
+            await populateProductDropdowns();
+            await fetchAndRenderBalance();
+            await updateDashboardStats();
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            showNotification('Error: ' + (errData.error || res.status), 'error');
+          }
+        } catch (err) {
+          showNotification('Network error: ' + err.message, 'error');
+        }
+      });
     });
   </script>
 </body>
